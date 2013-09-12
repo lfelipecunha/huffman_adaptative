@@ -1,5 +1,5 @@
 <?php
-require_once "Node.php"
+require_once "Node.php";
 
 /**
  * Árvore binária com propriedades para alocação de nodos com base no algorítmo de Huffman Adaptativo
@@ -47,7 +47,7 @@ class Tree {
      * @return Node Nodo com o elemento adicionado | valor nulo quando nodo já existe
      */
     public function addElement($element) {
-        $node = $this->_getNode($element,$this->_root);
+        $node = $this->getNode($element);
         if (is_null($node)) {
             $newNode = new Node($element);
             $this->_addNode($newNode);
@@ -65,10 +65,10 @@ class Tree {
      *
      * @param string $value Valor do nodo
      * @param Node $node    Nodo inicial para a procura
-     * @access protected
+     * @access public
      * @return Node Nodo buscado | Valor nulo para quando não encontrado
      */
-    protected function _getNode($value, $node = null) {
+    public function getNode($value, $node = null) {
         $element = null;
         // primeira execução sem recursão?
         if (is_null($node)) {
@@ -84,7 +84,7 @@ class Tree {
             // existe nodo a direita?
             if (!is_null($rightNode)) {
                 // chamada recursiva a partir do nodo a direita do atual
-                $element = $this->_getNode($value,$rightNode);
+                $element = $this->getNode($value,$rightNode);
             }
 
             // nodo ainda não encontrado?
@@ -93,7 +93,7 @@ class Tree {
                 // existe nodo à esquerda?
                 if (!is_null($leftNode)) {
                     // chamada recursiva a partir do nodo a esquerda do atual
-                    $element = $this->_getNode($value,$leftNode);
+                    $element = $this->getNode($value,$leftNode);
                 }
             }
         }
@@ -127,7 +127,7 @@ class Tree {
         } elseif ($node->getLevel() < $level) {
             // chama recursivamente o teste para os nodos filhos do atual
             if ($node->getRightNode()) {
-                $nodes = array_merge($nodes,$this->_getNodesByLevel($level,$node->getLeftNode()));
+                $nodes = array_merge($nodes,$this->_getNodesByLevel($level,$node->getRightNode()));
             }
             if ($node->getLeftNode()) {
                 $nodes = array_merge($nodes,$this->_getNodesByLevel($level,$node->getLeftNode()));
@@ -167,7 +167,6 @@ class Tree {
             $level = $treeNode->getLevel();
             // obtenção dos nodos do nível
             $nodes = $this->_getNodesByLevel($level);
-
             // varre os nodos do nível a procurar nodo compatível com o nodo base
             foreach ($nodes as $n) {
                 // é o próprio nodo base?
@@ -179,10 +178,11 @@ class Tree {
                 if (
                     $n->getWeight() == $node->getWeight() &&
                     !$n->isEqual($node->getParent()) &&
-                    !$n->isEqual($thjis->_nyt) &&
+                    !$n->isEqual($this->_nyt) &&
+                    !$n->getParent()->isEqual($node) &&
                     (
                         $n->getLevel() < $node->getLevel() ||
-                        $node->right < $n->right
+                        $node->getRight() < $n->getRight()
                     )
                 ){
                     $result = $n;
@@ -221,11 +221,12 @@ class Tree {
                 if ($node->getLeftNode()) {
                     $weight += $node->getLeftNode()->getWeight();
                 }
-                if ($nide->getRightNode()) {
+                if ($node->getRightNode()) {
                     $weight += $node->getRightNode()->getWeight();
                 }
                 $node->setWeight($weight);
             }
+            $node = $node->getParent();
         }
         // atualiza a árvore
         $this->update();
@@ -250,7 +251,6 @@ class Tree {
             $level = $betterNode->getLevel();
             $betterNode->setLevel($node->getLevel());
             $node->setLevel($level);
-
             $parent = $betterNode->getParent();
             $position = $betterNode->getPosition();
             $betterNode->setParent($node->getParent(),$node->getPosition());
@@ -302,11 +302,10 @@ class Tree {
      * @param Node $node Nodo inicial da atualização
      * @param int $left  Valor de esquerda inicial
      * @param int $path  Caminho inicial
-     * @static
      * @access public
      * @return int Valor de direita do nodo
      */
-    public static function update(Node $node = null, $left = 0, $path = 0) {
+    public function update(Node $node = null, $left = 0, $path = 0) {
         // deve partir da raiz da árvore?
         if (is_null($node)) {
             $node = $this->_root;
@@ -330,7 +329,7 @@ class Tree {
         if ($rightNode) {
             $weight += $rightNode->getWeight();
             $rightPath = $path >> 1 | 1;
-            $left = $this->update($leftNode,$left+1,$rightPath);
+            $left = $this->update($rightNode,$left+1,$rightPath);
         }
 
         // define o valor de direita do nodo

@@ -148,10 +148,10 @@ class Node {
      * @author Luiz Felipe Cunha <felipe.silvacunha@gmail.com>
      *
      * @param string $path
-     * @access protected
+     * @access public
      * @return Node Próprio Objeto para encadeamento
      */
-    protected function _setPath($path) {
+    public function setPath($path) {
         $this->_path = $path;
         return $this;
     }
@@ -303,10 +303,10 @@ class Node {
      * @author Luiz Felipe Cunha <felipe.silvacunha@gmail.com>
      *
      * @param int $level
-     * @access protected
+     * @access public
      * @return Node Próprio Objeto para encadeamento
      */
-    protected function setLevel($level) {
+    public function setLevel($level) {
         $this->_level = $level;
 
         // realiza varredura dos filhos para a realização da atualização

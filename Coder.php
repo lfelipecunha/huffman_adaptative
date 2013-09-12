@@ -68,7 +68,6 @@ class Coder {
         do {
             fseek($input['file'],$i++);
             $char = fread($input['file'],1);
-            echo $char;
             $node = $tree->getNode($char);
             if (!$node) {
                 $path = $tree->getNYT()->getPath();
@@ -100,6 +99,9 @@ class Coder {
         return $this;
     }
 }
-
+$time = microtime(true);
 $coder = new Coder('files/input.txt','files/output.bin');
 $coder->run();
+
+$time = round(microtime(true)-$time,2);
+echo $time."s\n";
