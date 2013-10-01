@@ -1,107 +1,50 @@
 <?php
 
-define('BYTE_SIZE',8);
+error_reporting(E_ALL | E_STRICT);
+ini_set('display_errors',true);
 
-require_once "Tree.php";
-require_once "Bitset.php";
+require_once 'Node.php';
 
-class Coder {
+Node::startup();
 
-    protected $_tree = null;
+$input = fopen('php://stdin', 'r');
+$output = fopen('files/output.bin', 'w+');
+$rest = 0;
+$bits = 0;
 
-    protected $_inputFile = null;
-    protected $_outputFile = null;
+while(($element = fread($input,1)) !== '') {
+    $node = Node::getNode($element);
 
-
-
-    public function __construct($inputFile,$outputFile) {
-        $this
-            ->setInputFile($inputFile)
-            ->setOutputFile($outputFile);
-        $this->_tree = new Tree();
+    if (!$node) {
+        $path = Node::$NYT->getPath();
+        $level = Node::$NYT->getLevel();
+        $sendElement = true;
+    } else {
+        $path = $node->getPath();
+        $level = $node->getLevel();
+        $sendElement = false;
     }
 
-    protected function _validateFile($file) {
-        if (!file_exists($file)) {
-            throw new Exception(sprintf('"%s" not exists!',$file));
-        }
+    Node::addElement($element);
 
-        if (is_dir($file)) {
-            throw new Exception(sprintf('"%s" is not a valid file!',$file));
-        }
+    $rest = ($rest << ($level +1)) | $path;
+    $bits += $level+1;
 
-        if (!is_readable($file)) {
-            throw new Exception(sprintf('Cannot read file at "%s"! Please give permission!',$file));
-        }
-
+    if ($sendElement) {
+        $bits += 8;
+        $rest = ($rest << 8) | ord($element);
     }
 
-    public function setOutputFile($file) {
-        $file = (string)$file;
-        $this->_validateFile($file);
-        if (!is_writable($file)) {
-            throw new Exception(sprintf('Cannot write file at "%s"! Please give permission!',$file));
-        }
-        $this->_outputFile = array(
-            'file' => fopen($file,'wb'),
-            'size' => filesize($file)
-        );
-        return $this;
-    }
-
-    public function setInputFile($file) {
-        $file = (string)$file;
-        $this->_validateFile($file);
-        $this->_inputFile = array(
-            'file' => fopen($file,'rb'),
-            'size' => filesize($file)
-        );
-        return $this;
-    }
-
-    public function run() {
-        $input = $this->_inputFile;
-        $output = $this->_outputFile;
-        $i=0;
-        $tree = $this->_tree;
-        $buffer = new Bitset(0,0);
-        do {
-            fseek($input['file'],$i++);
-            $char = fread($input['file'],1);
-            $node = $tree->getNode($char);
-            if (!$node) {
-                $path = $tree->getNYT()->getPath();
-                $level = $tree->getNYT()->getLevel();
-                $addChar = true;
-            } else {
-                $path = $node->getPath();
-                $level = $node->getLevel();
-                $addChar = false;
-            }
-            $tree->addElement($char);
-            $buffer->addBits($path,$level+1);
-            if ($addChar) {
-                $buffer->addBits(ord($char),8);
-            }
-
-            while ($buffer->getSize() >= BYTE_SIZE) {
-                $this->_writeByte($buffer->getByte());
-            }
-        } while($i < $input['size']);
-
-        while ($buffer->getSize() > 0) {
-            $this->_writeByte($buffer->getByte());
-        }
-    }
-
-    protected function _writeByte($byte) {
-        fwrite($this->_outputFile['file'],pack('C*',(int)$byte),1);
-        return $this;
+    while ($bits >= 8) {
+        $aux = $rest >> ($bits - 8);
+        $total = str_repeat(1, $bits - 8);
+        $rest &= bindec($total);
+        fwrite($output,pack('C*',$aux),1);
+        $bits -= 8;
     }
 }
-$time = microtime(true);
-$coder = new Coder('files/input.txt','files/output.bin');
-$coder->run();
 
-$time = round(microtime(true)-$time,2);
-echo $time."s\n";
+if ($bits > 0) {
+    $data = ($rest << (8 - $bits))  | bindec(str_repeat('1',8-$bits));
+    fwrite($output,pack('c*',$data),1);
+}
